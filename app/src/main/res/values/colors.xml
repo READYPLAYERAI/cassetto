@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Must match CassettoLightColorScheme.background so the cold-start window
+         does not flash a different colour before Compose draws. -->
+    <color name="window_background">#F2F2F7</color>
+</resources>
