@@ -19,16 +19,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
 
+      # v4 no longer installs the long-dead `tools` package, which made
+      # sdkmanager exit 1 on v3.
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Install platform and build tools
         run: |
@@ -36,7 +38,7 @@ jobs:
           sdkmanager "platforms;android-37.0" "build-tools;37.0.0" "platform-tools"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Assemble debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
@@ -46,7 +48,7 @@ jobs:
 
       - name: Upload debug APK
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cassetto-debug-apk
           path: app/build/outputs/apk/debug/*.apk
