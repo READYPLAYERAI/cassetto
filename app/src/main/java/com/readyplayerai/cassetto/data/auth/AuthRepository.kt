@@ -4,7 +4,6 @@ import com.readyplayerai.cassetto.data.remote.ApiException
 import com.readyplayerai.cassetto.data.remote.KarakeepApi
 import com.readyplayerai.cassetto.data.settings.ServerUrl
 import com.readyplayerai.cassetto.data.settings.SettingsRepository
-import java.net.URI
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
@@ -131,7 +130,7 @@ class AuthRepository @Inject constructor(
     }
 
     /** Diagnostics for the login screen's "Test connection" affordance. */
-    suspend fun testConnection(serverAddress: String): Result<String> {
+    suspend fun testConnection(serverAddress: String): Result<Unit> {
         val normalized = ServerUrl.normalize(serverAddress)
         ServerUrl.validationError(normalized)?.let {
             return Result.failure(AuthException(AuthException.Reason.INVALID_SERVER_ADDRESS, it))
@@ -139,15 +138,9 @@ class AuthRepository @Inject constructor(
         return try {
             val health = api.health(normalized)
             if (health.status == "ok") {
-                val host = runCatching { URI(normalized).host }.getOrNull() ?: normalized
-                Result.success("Connected to $host (status: ok)")
+                Result.success(Unit)
             } else {
-                Result.failure(
-                    AuthException(
-                        AuthException.Reason.SERVER,
-                        "Server reported status: ${health.status}",
-                    ),
-                )
+                Result.failure(AuthException(AuthException.Reason.SERVER))
             }
         } catch (e: ApiException) {
             Result.failure(e.toAuthException(AuthException.Reason.UNKNOWN))

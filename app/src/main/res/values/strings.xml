@@ -1,4 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Cassetto</string>
+
+    <!-- Login -->
+    <string name="login_title">Cassetto</string>
+    <string name="login_subtitle">The drawer for everything worth keeping.</string>
+    <string name="login_mode_password">Password</string>
+    <string name="login_mode_api_key">API key</string>
+    <string name="login_email_label">Email</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_api_key_label">API key</string>
+    <string name="login_api_key_placeholder">Paste your key</string>
+    <string name="login_sign_in">Sign in</string>
+    <string name="login_signing_in">Signing in…</string>
+    <string name="login_server_label">Server</string>
+    <string name="login_server_edit">Edit server address</string>
+    <string name="login_server_save">Save</string>
+    <string name="login_server_cancel">Cancel</string>
+    <string name="login_test_connection">Test connection</string>
+    <string name="login_testing_connection">Testing…</string>
+    <string name="login_connection_ok">Connected successfully</string>
+    <string name="login_dismiss_error">Dismiss error</string>
+
+    <string name="login_error_wrong_credentials">Wrong email or password</string>
+    <string name="login_error_invalid_api_key">Invalid API key</string>
+    <string name="login_error_session_expired">Your session expired. Sign in again.</string>
+    <string name="login_error_invalid_address">That doesn’t look like a Karakeep server address</string>
+    <string name="login_error_connection">Couldn’t connect to this Karakeep server. Check the server address and your internet connection, then try again.</string>
+    <string name="login_error_rate_limited">Too many attempts. Wait a few minutes and try again.</string>
+    <string name="login_error_server">The server returned an error. Try again in a moment.</string>
+    <string name="login_error_unknown">Something went wrong</string>
 </resources>
