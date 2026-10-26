@@ -94,6 +94,9 @@ class LoginViewModel @Inject constructor(
                         serverAddressDraft = normalized,
                         isEditingServerAddress = false,
                         serverAddressError = null,
+                        // A failure from the previous server says nothing about this one.
+                        error = null,
+                        connectionStatus = null,
                     )
                 }
             } catch (e: IllegalArgumentException) {

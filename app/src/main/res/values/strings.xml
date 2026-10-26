@@ -30,4 +30,10 @@
     <string name="login_error_rate_limited">Too many attempts. Wait a few minutes and try again.</string>
     <string name="login_error_server">The server returned an error. Try again in a moment.</string>
     <string name="login_error_unknown">Something went wrong</string>
+
+    <!-- Account -->
+    <string name="account_signed_in_as">Signed in as</string>
+    <string name="account_sign_out">Sign out</string>
+    <string name="account_server_label">Server</string>
+    <string name="account_fallback_name">Karakeep user</string>
 </resources>

@@ -7,7 +7,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,6 +21,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.readyplayerai.cassetto.data.auth.Session
+import com.readyplayerai.cassetto.ui.account.AccountRoute
 import com.readyplayerai.cassetto.ui.login.LoginRoute
 import com.readyplayerai.cassetto.ui.session.SessionViewModel
 
@@ -82,17 +82,7 @@ fun CassettoNavHost() {
             LoginRoute()
         }
         composable(Routes.ACCOUNT) {
-            // Replaced by the real account screen in Step 7.
-            Scaffold { padding ->
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("Signed in")
-                }
-            }
+            AccountRoute()
         }
     }
 }
