@@ -9,15 +9,20 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -33,10 +38,18 @@ import com.readyplayerai.cassetto.ui.session.SessionViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun AccountRoute(viewModel: SessionViewModel = hiltViewModel()) {
+fun AccountRoute(
+    onBack: (() -> Unit)? = null,
+    viewModel: SessionViewModel = hiltViewModel(),
+) {
     val session = viewModel.session.collectAsStateWithLifecycle().value
     val isLoggingOut = viewModel.isLoggingOut.collectAsStateWithLifecycle().value
-    AccountScreen(session = session, isLoggingOut = isLoggingOut, onSignOut = viewModel::logout)
+    AccountScreen(
+        session = session,
+        isLoggingOut = isLoggingOut,
+        onSignOut = viewModel::logout,
+        onBack = onBack,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
@@ -45,8 +58,25 @@ fun AccountScreen(
     session: Session,
     isLoggingOut: Boolean,
     onSignOut: () -> Unit,
+    onBack: (() -> Unit)? = null,
 ) {
-    Scaffold { innerPadding ->
+    Scaffold(
+        topBar = {
+            if (onBack != null) {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.account_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.account_back),
+                            )
+                        }
+                    },
+                )
+            }
+        },
+    ) { innerPadding ->
         when (session) {
             Session.Loading -> Centered { LoadingIndicator() }
             Session.LoggedOut -> Centered { }

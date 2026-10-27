@@ -1,6 +1,7 @@
 package com.readyplayerai.cassetto.data.remote
 
 import com.readyplayerai.cassetto.data.remote.dto.ApiKeyDto
+import com.readyplayerai.cassetto.data.remote.dto.BookmarksPageDto
 import com.readyplayerai.cassetto.data.remote.dto.ExchangeRequest
 import com.readyplayerai.cassetto.data.remote.dto.HealthDto
 import com.readyplayerai.cassetto.data.remote.dto.RevokeRequest
@@ -9,6 +10,7 @@ import com.readyplayerai.cassetto.data.remote.dto.ValidateRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.parameter
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
 import javax.inject.Inject
@@ -89,10 +91,67 @@ class KarakeepApi @Inject constructor(
         }
     }
 
-    private suspend fun getText(url: String, bearer: String?): Pair<Int, String> {
+    /** Lists bookmarks without content, newest first. */
+    suspend fun listBookmarks(
+        serverAddress: String,
+        apiKey: String,
+        cursor: String? = null,
+        limit: Int = 50,
+    ): BookmarksPageDto {
+        val parameters = linkedMapOf<String, Any?>(
+            "includeContent" to false,
+            "sortOrder" to "desc",
+            "limit" to limit,
+        )
+        if (cursor != null) parameters["cursor"] = cursor
+        return getBookmarksPage("$serverAddress/api/v1/bookmarks", apiKey, parameters)
+    }
+
+    /** Full-text search, newest first by default. */
+    suspend fun searchBookmarks(
+        serverAddress: String,
+        apiKey: String,
+        query: String,
+        cursor: String? = null,
+        limit: Int = 50,
+        sortOrder: String = "desc",
+    ): BookmarksPageDto {
+        val parameters = linkedMapOf<String, Any?>(
+            "q" to query,
+            "searchMode" to "fts",
+            "includeContent" to false,
+            "sortOrder" to sortOrder,
+            "limit" to limit,
+        )
+        if (cursor != null) parameters["cursor"] = cursor
+        return getBookmarksPage("$serverAddress/api/v1/bookmarks/search", apiKey, parameters)
+    }
+
+    private suspend fun getBookmarksPage(
+        url: String,
+        apiKey: String,
+        parameters: Map<String, Any?>,
+    ): BookmarksPageDto {
+        val (status, body) = getText(url, apiKey, parameters)
+        if (status !in 200..299) throw httpStatusError(status, body)
+        return try {
+            json.decodeFromString(BookmarksPageDto.serializer(), body)
+        } catch (e: Exception) {
+            throw ApiException.Malformed(e)
+        }
+    }
+
+    private suspend fun getText(
+        url: String,
+        bearer: String?,
+        parameters: Map<String, Any?> = emptyMap(),
+    ): Pair<Int, String> {
         return try {
             val response = http.get(url) {
                 if (bearer != null) header(HttpHeaders.Authorization, "Bearer $bearer")
+                parameters.forEach { (key, value) ->
+                    if (value != null) parameter(key, value)
+                }
             }
             response.status.value to response.bodyAsText()
         } catch (e: CancellationException) {

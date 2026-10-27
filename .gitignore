@@ -6,3 +6,6 @@ local.properties
 .kotlin/
 captures/
 .DS_Store
+
+# Local design notes and mockups
+notes/

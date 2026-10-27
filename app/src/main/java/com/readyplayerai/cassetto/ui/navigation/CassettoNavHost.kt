@@ -22,6 +22,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.readyplayerai.cassetto.data.auth.Session
 import com.readyplayerai.cassetto.ui.account.AccountRoute
+import com.readyplayerai.cassetto.ui.home.HomeRoute
 import com.readyplayerai.cassetto.ui.login.LoginRoute
 import com.readyplayerai.cassetto.ui.session.SessionViewModel
 
@@ -40,7 +41,7 @@ fun CassettoNavHost() {
             startDestination = when (session) {
                 Session.Loading -> null
                 Session.LoggedOut -> Routes.LOGIN
-                is Session.LoggedIn -> Routes.ACCOUNT
+                is Session.LoggedIn -> Routes.HOME
             }
         }
     }
@@ -65,11 +66,11 @@ fun CassettoNavHost() {
         val current = navController.currentDestination?.route
         when {
             session is Session.LoggedIn && current == Routes.LOGIN ->
-                navController.navigate(Routes.ACCOUNT) {
+                navController.navigate(Routes.HOME) {
                     popUpTo(Routes.LOGIN) { inclusive = true }
                     launchSingleTop = true
                 }
-            session is Session.LoggedOut && current == Routes.ACCOUNT ->
+            session is Session.LoggedOut && current != null && current != Routes.LOGIN ->
                 navController.navigate(Routes.LOGIN) {
                     popUpTo(navController.graph.id) { inclusive = true }
                     launchSingleTop = true
@@ -81,8 +82,17 @@ fun CassettoNavHost() {
         composable(Routes.LOGIN) {
             LoginRoute()
         }
+        composable(Routes.HOME) {
+            HomeRoute(
+                onOpenAccount = {
+                    navController.navigate(Routes.ACCOUNT) { launchSingleTop = true }
+                },
+                onOpenSettings = {},
+                onSignOut = sessionViewModel::logout,
+            )
+        }
         composable(Routes.ACCOUNT) {
-            AccountRoute()
+            AccountRoute(onBack = { navController.popBackStack() })
         }
     }
 }

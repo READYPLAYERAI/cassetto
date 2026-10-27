@@ -29,6 +29,57 @@ data class HealthDto(
     val message: String? = null,
 )
 
+/** Response of `GET /api/v1/bookmarks` and `/api/v1/bookmarks/search`. */
+@Serializable
+data class BookmarksPageDto(
+    val bookmarks: List<BookmarkDto> = emptyList(),
+    val nextCursor: String? = null,
+)
+
+/** One Karakeep bookmark, tolerant of fields this app does not model. */
+@Serializable
+data class BookmarkDto(
+    val id: String,
+    val createdAt: String? = null,
+    val modifiedAt: String? = null,
+    val title: String? = null,
+    val archived: Boolean = false,
+    val favourited: Boolean = false,
+    val note: String? = null,
+    val summary: String? = null,
+    val tags: List<BookmarkTagDto> = emptyList(),
+    val content: BookmarkContentDto? = null,
+    val assets: List<BookmarkAssetDto> = emptyList(),
+)
+
+@Serializable
+data class BookmarkTagDto(
+    val id: String,
+    val name: String,
+    val attachedBy: String? = null,
+)
+
+@Serializable
+data class BookmarkContentDto(
+    val type: String,
+    val url: String? = null,
+    val title: String? = null,
+    val description: String? = null,
+    val imageUrl: String? = null,
+    val text: String? = null,
+    val sourceUrl: String? = null,
+    val assetType: String? = null,
+    val assetId: String? = null,
+    val fileName: String? = null,
+)
+
+@Serializable
+data class BookmarkAssetDto(
+    val id: String,
+    val assetType: String? = null,
+    val fileName: String? = null,
+)
+
 @Serializable
 internal data class ExchangeRequest(
     val keyName: String,
