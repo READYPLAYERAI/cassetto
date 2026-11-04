@@ -80,6 +80,26 @@ data class BookmarkAssetDto(
     val fileName: String? = null,
 )
 
+/** Response of `GET /api/v1/bookmarks/{id}/content`. */
+@Serializable
+data class ReadableContentDto(
+    val bookmarkId: String = "",
+    val bookmarkType: String? = null,
+    val format: String? = null,
+    val content: String = "",
+    val contentVersion: String? = null,
+    val nextCursor: String? = null,
+    val truncated: Boolean = false,
+)
+
+/** Body of `PATCH /api/v1/bookmarks/{id}`. Null fields are omitted by Json.explicitNulls=false. */
+@Serializable
+data class UpdateBookmarkRequest(
+    val favourited: Boolean? = null,
+    val archived: Boolean? = null,
+    val note: String? = null,
+)
+
 @Serializable
 internal data class ExchangeRequest(
     val keyName: String,

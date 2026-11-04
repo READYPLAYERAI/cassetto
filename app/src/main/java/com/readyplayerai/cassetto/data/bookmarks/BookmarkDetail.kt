@@ -1,0 +1,75 @@
+package com.readyplayerai.cassetto.data.bookmarks
+
+import com.readyplayerai.cassetto.data.remote.dto.BookmarkDto
+import java.time.Instant
+import kotlin.math.ceil
+
+data class BookmarkAsset(
+    val id: String,
+    val assetType: String,
+    val fileName: String?,
+)
+
+data class BookmarkDetail(
+    val id: String,
+    val title: String,
+    val sourceLabel: String,
+    val url: String?,
+    val note: String?,
+    val summary: String?,
+    val createdAt: Instant,
+    val modifiedAt: Instant?,
+    val favourited: Boolean,
+    val archived: Boolean,
+    val kind: BookmarkKind,
+    val tags: List<String>,
+    val assets: List<BookmarkAsset>,
+    val readableText: String,
+) {
+    val wordCount: Int get() = readableText.readerWordCount()
+    val readMinutes: Int get() = readerMinutes(wordCount)
+    val paragraphs: List<String> get() = readableText.toReaderParagraphs()
+}
+
+fun BookmarkDto.toBookmarkDetail(readableText: String): BookmarkDetail {
+    val base = toBookmark()
+    return BookmarkDetail(
+        id = base.id,
+        title = base.title,
+        sourceLabel = base.sourceLabel,
+        url = base.url,
+        note = base.note,
+        summary = base.summary,
+        createdAt = base.createdAt,
+        modifiedAt = modifiedAt?.let { parseInstant(it) },
+        favourited = base.favourited,
+        archived = archived,
+        kind = base.kind,
+        tags = base.tags,
+        assets = assets.map { asset ->
+            BookmarkAsset(
+                id = asset.id,
+                assetType = asset.assetType.orEmpty(),
+                fileName = asset.fileName,
+            )
+        },
+        readableText = readableText.trim(),
+    )
+}
+
+fun String.toReaderParagraphs(): List<String> =
+    replace("\r\n", "\n")
+        .split(Regex("\\n\\s*\\n"))
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+
+fun String.readerWordCount(): Int {
+    val trimmed = trim()
+    if (trimmed.isEmpty()) return 0
+    return trimmed.split(Regex("\\s+")).count { it.isNotEmpty() }
+}
+
+fun readerMinutes(wordCount: Int): Int {
+    if (wordCount <= 0) return 0
+    return ceil(wordCount / 200.0).toInt()
+}

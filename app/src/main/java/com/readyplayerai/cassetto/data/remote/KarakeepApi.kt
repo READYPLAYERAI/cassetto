@@ -1,18 +1,26 @@
 package com.readyplayerai.cassetto.data.remote
 
 import com.readyplayerai.cassetto.data.remote.dto.ApiKeyDto
+import com.readyplayerai.cassetto.data.remote.dto.BookmarkDto
 import com.readyplayerai.cassetto.data.remote.dto.BookmarksPageDto
 import com.readyplayerai.cassetto.data.remote.dto.ExchangeRequest
 import com.readyplayerai.cassetto.data.remote.dto.HealthDto
+import com.readyplayerai.cassetto.data.remote.dto.ReadableContentDto
 import com.readyplayerai.cassetto.data.remote.dto.RevokeRequest
+import com.readyplayerai.cassetto.data.remote.dto.UpdateBookmarkRequest
 import com.readyplayerai.cassetto.data.remote.dto.UserMeDto
 import com.readyplayerai.cassetto.data.remote.dto.ValidateRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.client.request.request
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.http.contentType
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
@@ -127,6 +135,100 @@ class KarakeepApi @Inject constructor(
         return getBookmarksPage("$serverAddress/api/v1/bookmarks/search", apiKey, parameters)
     }
 
+    /** Full bookmark metadata; content is included so note text can be used as a fallback. */
+    suspend fun getBookmark(
+        serverAddress: String,
+        apiKey: String,
+        bookmarkId: String,
+        includeContent: Boolean = true,
+    ): BookmarkDto {
+        val (status, body) = getText(
+            "$serverAddress/api/v1/bookmarks/$bookmarkId",
+            apiKey,
+            mapOf("includeContent" to includeContent),
+        )
+        if (status !in 200..299) throw httpStatusError(status, body)
+        return try {
+            json.decodeFromString(BookmarkDto.serializer(), body)
+        } catch (e: Exception) {
+            throw ApiException.Malformed(e)
+        }
+    }
+
+    /** Reader text. `format=text` returns plain text, which the Detail screen renders as paragraphs. */
+    suspend fun getReadableContent(
+        serverAddress: String,
+        apiKey: String,
+        bookmarkId: String,
+        format: String = "text",
+        maxChars: Int = 50_000,
+    ): ReadableContentDto {
+        val (status, body) = getText(
+            "$serverAddress/api/v1/bookmarks/$bookmarkId/content",
+            apiKey,
+            mapOf("format" to format, "maxChars" to maxChars),
+        )
+        if (status !in 200..299) throw httpStatusError(status, body)
+        return try {
+            json.decodeFromString(ReadableContentDto.serializer(), body)
+        } catch (e: Exception) {
+            throw ApiException.Malformed(e)
+        }
+    }
+
+    suspend fun updateBookmark(
+        serverAddress: String,
+        apiKey: String,
+        bookmarkId: String,
+        request: UpdateBookmarkRequest,
+    ): BookmarkDto {
+        val body = json.encodeToString(UpdateBookmarkRequest.serializer(), request)
+        val (status, responseBody) = sendJson(
+            method = HttpMethod.Patch,
+            url = "$serverAddress/api/v1/bookmarks/$bookmarkId",
+            bearer = apiKey,
+            body = body,
+        )
+        if (status !in 200..299) throw httpStatusError(status, responseBody)
+        return try {
+            json.decodeFromString(BookmarkDto.serializer(), responseBody)
+        } catch (e: Exception) {
+            throw ApiException.Malformed(e)
+        }
+    }
+
+    suspend fun deleteBookmark(
+        serverAddress: String,
+        apiKey: String,
+        bookmarkId: String,
+    ) {
+        val (status, body) = sendJson(
+            method = HttpMethod.Delete,
+            url = "$serverAddress/api/v1/bookmarks/$bookmarkId",
+            bearer = apiKey,
+        )
+        if (status !in 200..299) throw httpStatusError(status, body)
+    }
+
+    /** Requests an AI summary and returns the updated bookmark. */
+    suspend fun summarizeBookmark(
+        serverAddress: String,
+        apiKey: String,
+        bookmarkId: String,
+    ): BookmarkDto {
+        val (status, body) = sendJson(
+            method = HttpMethod.Post,
+            url = "$serverAddress/api/v1/bookmarks/$bookmarkId/summarize",
+            bearer = apiKey,
+        )
+        if (status !in 200..299) throw httpStatusError(status, body)
+        return try {
+            json.decodeFromString(BookmarkDto.serializer(), body)
+        } catch (e: Exception) {
+            throw ApiException.Malformed(e)
+        }
+    }
+
     private suspend fun getBookmarksPage(
         url: String,
         apiKey: String,
@@ -151,6 +253,29 @@ class KarakeepApi @Inject constructor(
                 if (bearer != null) header(HttpHeaders.Authorization, "Bearer $bearer")
                 parameters.forEach { (key, value) ->
                     if (value != null) parameter(key, value)
+                }
+            }
+            response.status.value to response.bodyAsText()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw e.toApiException()
+        }
+    }
+
+    private suspend fun sendJson(
+        method: HttpMethod,
+        url: String,
+        bearer: String,
+        body: String? = null,
+    ): Pair<Int, String> {
+        return try {
+            val response = http.request(url) {
+                this.method = method
+                header(HttpHeaders.Authorization, "Bearer $bearer")
+                if (body != null) {
+                    contentType(ContentType.Application.Json)
+                    setBody(body)
                 }
             }
             response.status.value to response.bodyAsText()

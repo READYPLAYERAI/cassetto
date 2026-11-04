@@ -115,7 +115,7 @@ private fun hostOf(url: String?): String? {
     return host.removePrefix("www.").takeIf { it.isNotBlank() }
 }
 
-private fun parseInstant(raw: String?): Instant {
+internal fun parseInstant(raw: String?): Instant {
     if (raw.isNullOrBlank()) return Instant.now()
     return try {
         Instant.parse(raw)

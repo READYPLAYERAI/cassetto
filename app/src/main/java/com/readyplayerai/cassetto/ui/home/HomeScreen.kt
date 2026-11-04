@@ -121,6 +121,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.readyplayerai.cassetto.R
 import com.readyplayerai.cassetto.data.auth.Session
@@ -136,6 +137,7 @@ fun HomeRoute(
     onOpenAccount: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     onSignOut: () -> Unit = {},
+    onOpenBookmark: (Bookmark) -> Unit = {},
     homeViewModel: HomeViewModel = hiltViewModel(),
     sessionViewModel: SessionViewModel = hiltViewModel(),
 ) {
@@ -144,6 +146,16 @@ fun HomeRoute(
     val isLoggingOut by sessionViewModel.isLoggingOut.collectAsStateWithLifecycle()
 
     val loggedIn = session as? Session.LoggedIn ?: return
+
+    var hasResumed by rememberSaveable { mutableStateOf(false) }
+    LifecycleResumeEffect(Unit) {
+        if (hasResumed) {
+            homeViewModel.refresh()
+        } else {
+            hasResumed = true
+        }
+        onPauseOrDispose { }
+    }
 
     HomeScreen(
         state = state,
@@ -167,7 +179,7 @@ fun HomeRoute(
         onOpenAccount = onOpenAccount,
         onOpenSettings = onOpenSettings,
         onSignOut = onSignOut,
-        onOpenBookmark = {},
+        onOpenBookmark = onOpenBookmark,
     )
 }
 
@@ -205,12 +217,6 @@ fun HomeScreen(
     val showMessage: suspend (String) -> Unit = { message ->
         snackbarHostState.showSnackbar(message)
     }
-    val bookmarkMessage = stringResource(R.string.home_bookmark_coming_soon)
-    val handleBookmarkClick: (Bookmark) -> Unit = { bookmark ->
-        scope.launch { snackbarHostState.showSnackbar(bookmarkMessage) }
-        onOpenBookmark(bookmark)
-    }
-
     val homeListState = rememberLazyListState()
     val searchListState = rememberLazyListState()
     val homeBlur by animateDpAsState(
@@ -270,7 +276,7 @@ fun HomeScreen(
                     onRetrySearch = onRetrySearch,
                     onLoadMoreSearch = onLoadMoreSearch,
                     onClearQuery = onClearQuery,
-                    onOpenBookmark = handleBookmarkClick,
+                    onOpenBookmark = onOpenBookmark,
                 )
             }
         }

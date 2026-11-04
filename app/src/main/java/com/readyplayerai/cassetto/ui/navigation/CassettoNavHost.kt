@@ -19,9 +19,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavType
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.readyplayerai.cassetto.data.auth.Session
 import com.readyplayerai.cassetto.ui.account.AccountRoute
+import com.readyplayerai.cassetto.ui.detail.BookmarkDetailRoute
 import com.readyplayerai.cassetto.ui.home.HomeRoute
 import com.readyplayerai.cassetto.ui.login.LoginRoute
 import com.readyplayerai.cassetto.ui.session.SessionViewModel
@@ -89,7 +92,18 @@ fun CassettoNavHost() {
                 },
                 onOpenSettings = {},
                 onSignOut = sessionViewModel::logout,
+                onOpenBookmark = { bookmark ->
+                    navController.navigate(Routes.detail(bookmark.id)) { launchSingleTop = true }
+                },
             )
+        }
+        composable(
+            route = Routes.DETAIL,
+            arguments = listOf(
+                navArgument(Routes.DETAIL_ARG) { type = NavType.StringType },
+            ),
+        ) {
+            BookmarkDetailRoute(onBack = { navController.popBackStack() })
         }
         composable(Routes.ACCOUNT) {
             AccountRoute(onBack = { navController.popBackStack() })
