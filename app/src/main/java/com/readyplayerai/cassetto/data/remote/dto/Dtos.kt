@@ -71,6 +71,7 @@ data class BookmarkContentDto(
     val assetType: String? = null,
     val assetId: String? = null,
     val fileName: String? = null,
+    val htmlContent: String? = null,
 )
 
 @Serializable

@@ -24,14 +24,20 @@ data class BookmarkDetail(
     val kind: BookmarkKind,
     val tags: List<String>,
     val assets: List<BookmarkAsset>,
-    val readableText: String,
+    val reader: ReaderDocument,
 ) {
-    val wordCount: Int get() = readableText.readerWordCount()
-    val readMinutes: Int get() = readerMinutes(wordCount)
-    val paragraphs: List<String> get() = readableText.toReaderParagraphs()
+    val readableText: String get() = reader.plainText
+    val wordCount: Int get() = reader.wordCount
+    val readMinutes: Int get() = reader.readMinutes
+    val paragraphs: List<String> get() = reader.blocks.mapNotNull { block ->
+        (block as? ReaderBlock.Paragraph)
+            ?.spans
+            ?.readerPlainText()
+            ?.takeIf { it.isNotBlank() }
+    }
 }
 
-fun BookmarkDto.toBookmarkDetail(readableText: String): BookmarkDetail {
+fun BookmarkDto.toBookmarkDetail(reader: ReaderDocument): BookmarkDetail {
     val base = toBookmark()
     return BookmarkDetail(
         id = base.id,
@@ -53,7 +59,7 @@ fun BookmarkDto.toBookmarkDetail(readableText: String): BookmarkDetail {
                 fileName = asset.fileName,
             )
         },
-        readableText = readableText.trim(),
+        reader = reader,
     )
 }
 

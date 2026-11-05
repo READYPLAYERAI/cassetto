@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -88,7 +89,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -101,6 +101,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.readyplayerai.cassetto.R
 import com.readyplayerai.cassetto.data.bookmarks.BookmarkDetail
 import com.readyplayerai.cassetto.data.bookmarks.BookmarkKind
+import com.readyplayerai.cassetto.data.bookmarks.ReaderBlock
 import com.readyplayerai.cassetto.ui.home.relativeAgeText
 import kotlinx.coroutines.launch
 
@@ -175,6 +176,7 @@ fun BookmarkDetailScreen(
     val browserMissingText = stringResource(R.string.detail_menu_browser_missing)
     val noPreviewText = stringResource(R.string.detail_attachment_no_preview)
     val summaryCopiedText = stringResource(R.string.detail_summary_copied)
+    val codeCopiedText = stringResource(R.string.detail_code_copied)
     val shareChooserTitle = stringResource(R.string.detail_menu_share_chooser)
     val textSizeLabel = stringResource(
         when (textSizeIndex) {
@@ -205,7 +207,7 @@ fun BookmarkDetailScreen(
             state.isLoading && detail == null -> DetailLoading()
             state.error != null && detail == null -> DetailErrorState(state.error, onRetry)
             detail != null -> {
-                val paragraphs = remember(detail.readableText) { detail.paragraphs }
+                val blocks = remember(detail.reader) { detail.reader.blocks }
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -213,7 +215,7 @@ fun BookmarkDetailScreen(
                 ) {
                     item(key = "detail_hero") { DetailHero(detail) }
                     item(key = "detail_header") { DetailArticleHeader(detail) }
-                    if (paragraphs.isEmpty()) {
+                    if (blocks.isEmpty()) {
                         item(key = "reader_empty") {
                             ReaderEmptyState(
                                 url = detail.url,
@@ -228,20 +230,32 @@ fun BookmarkDetailScreen(
                         }
                     } else {
                         itemsIndexed(
-                            items = paragraphs,
-                            key = { index, _ -> "paragraph_$index" },
-                        ) { index, paragraph ->
-                            Text(
-                                text = paragraph,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp)
-                                    .padding(bottom = 16.dp),
-                                fontFamily = FontFamily.Serif,
-                                fontSize = (17f * textScale * if (index == 0) 1.06f else 1f).sp,
-                                lineHeight = (17f * 1.66f * textScale).sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
+                            items = blocks,
+                            key = { index, _ -> "reader_block_$index" },
+                        ) { index, block ->
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.TopCenter,
+                            ) {
+                                ReaderBlockView(
+                                    block = block,
+                                    textScale = textScale,
+                                    isLede = index == 0 && block is ReaderBlock.Paragraph,
+                                    onOpenUrl = { url ->
+                                        if (!openInBrowser(context, url)) {
+                                            scope.launch { snackbarHostState.showSnackbar(browserMissingText) }
+                                        }
+                                    },
+                                    onCopyCode = { code ->
+                                        copyToClipboard(context, code)
+                                        scope.launch { snackbarHostState.showSnackbar(codeCopiedText) }
+                                    },
+                                    modifier = Modifier
+                                        .widthIn(max = 680.dp)
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp),
+                                )
+                            }
                         }
                         item(key = "reader_end") {
                             Text(

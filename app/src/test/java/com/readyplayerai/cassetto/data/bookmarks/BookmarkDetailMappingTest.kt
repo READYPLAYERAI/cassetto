@@ -7,6 +7,7 @@ import com.readyplayerai.cassetto.data.remote.dto.BookmarkTagDto
 import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Test
 
 class BookmarkDetailMappingTest {
@@ -27,7 +28,8 @@ class BookmarkDetailMappingTest {
             content = BookmarkContentDto(type = "link", url = "https://www.example.com/docs"),
         )
 
-        val detail = dto.toBookmarkDetail("Alpha beta.\n\nGamma delta epsilon.")
+        val reader = ReaderParser.parsePlainText("Alpha beta.\n\nGamma delta epsilon.")
+        val detail = dto.toBookmarkDetail(reader)
 
         assertEquals("b1", detail.id)
         assertEquals("Kotlin Docs", detail.title)
@@ -39,7 +41,8 @@ class BookmarkDetailMappingTest {
         assertEquals(true, detail.archived)
         assertEquals(BookmarkKind.LINK, detail.kind)
         assertEquals(listOf("android"), detail.tags)
-        assertEquals("Alpha beta.\n\nGamma delta epsilon.", detail.readableText)
+        assertEquals("Alpha beta.\nGamma delta epsilon.", detail.readableText)
+        assertSame(reader, detail.reader)
         assertEquals(1, detail.assets.size)
         assertEquals("a1", detail.assets[0].id)
         assertEquals("pdf", detail.assets[0].assetType)
@@ -57,7 +60,7 @@ class BookmarkDetailMappingTest {
             assets = listOf(BookmarkAssetDto("a2", null, null)),
         )
 
-        val detail = dto.toBookmarkDetail("text")
+        val detail = dto.toBookmarkDetail(ReaderParser.parsePlainText("text"))
 
         assertEquals(1, detail.assets.size)
         assertEquals("a2", detail.assets[0].id)

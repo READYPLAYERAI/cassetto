@@ -107,6 +107,11 @@
     <string name="detail_reader_empty_title">No readable text</string>
     <string name="detail_reader_empty_body">This bookmark has no article text. Open the original in your browser.</string>
     <string name="detail_reader_end">End of reader view</string>
+    <string name="detail_reader_image_unavailable">Image unavailable</string>
+    <string name="detail_reader_embed_title">Embedded content</string>
+    <string name="detail_reader_embed_open">Open embedded content</string>
+    <string name="detail_code_copy">Copy code</string>
+    <string name="detail_code_copied">Code copied</string>
     <string name="detail_error_title">Couldn’t load this bookmark</string>
     <string name="detail_sheet_sub">%1$s · saved %2$s</string>
     <string name="detail_sheet_close">Close</string>
