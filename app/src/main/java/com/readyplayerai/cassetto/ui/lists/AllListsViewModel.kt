@@ -58,7 +58,7 @@ class AllListsViewModel @Inject constructor(
     }
 }
 
-private fun Throwable.toListsError(): ListsError = when (this) {
+internal fun Throwable.toListsError(): ListsError = when (this) {
     is ApiException.Unauthorized -> ListsError.UNAUTHORIZED
     is ApiException.Network -> ListsError.CONNECTION
     is ApiException.ServerError,

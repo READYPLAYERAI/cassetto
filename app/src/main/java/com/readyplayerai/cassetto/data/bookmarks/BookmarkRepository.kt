@@ -26,6 +26,16 @@ class BookmarkRepository @Inject constructor(
         ).toPage()
     }
 
+    suspend fun listInList(listId: String, cursor: String? = null): BookmarksPage {
+        val (serverAddress, apiKey) = credentials()
+        return api.getListBookmarks(
+            serverAddress = serverAddress,
+            apiKey = apiKey,
+            listId = listId,
+            cursor = cursor,
+        ).toPage()
+    }
+
     suspend fun search(
         query: String,
         cursor: String? = null,

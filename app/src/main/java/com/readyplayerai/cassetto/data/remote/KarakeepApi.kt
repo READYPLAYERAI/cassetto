@@ -147,6 +147,27 @@ class KarakeepApi @Inject constructor(
         }
     }
 
+    /** Bookmarks in a list, newest first. Works for manual and smart lists. */
+    suspend fun getListBookmarks(
+        serverAddress: String,
+        apiKey: String,
+        listId: String,
+        cursor: String? = null,
+        limit: Int = 50,
+    ): BookmarksPageDto {
+        val parameters = linkedMapOf<String, Any?>(
+            "includeContent" to false,
+            "sortOrder" to "desc",
+            "limit" to limit,
+        )
+        if (cursor != null) parameters["cursor"] = cursor
+        return getBookmarksPage(
+            "$serverAddress/api/v1/lists/$listId/bookmarks",
+            apiKey,
+            parameters,
+        )
+    }
+
     /** Full bookmark metadata; content is included so note text can be used as a fallback. */
     suspend fun getBookmark(
         serverAddress: String,

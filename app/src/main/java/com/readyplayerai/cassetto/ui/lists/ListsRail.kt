@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material3.Icon
@@ -46,11 +45,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.readyplayerai.cassetto.R
 import com.readyplayerai.cassetto.data.lists.BookmarkList
-
-private val CardShape = RoundedCornerShape(20.dp)
-private val TileShape = RoundedCornerShape(12.dp)
-private val CardWidth = 168.dp
-private val CardMinHeight = 132.dp
 
 @Composable
 fun ListsRail(
@@ -104,9 +98,9 @@ fun ListsRail(
                 items(3) {
                     Box(
                         modifier = Modifier
-                            .width(CardWidth)
-                            .height(CardMinHeight)
-                            .clip(CardShape)
+                            .width(ListCardWidth)
+                            .height(ListCardMinHeight)
+                            .clip(ListCardShape)
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                     )
                 }
@@ -137,65 +131,6 @@ fun ListsRail(
 }
 
 @Composable
-private fun ListCard(
-    list: BookmarkList,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.97f else 1f,
-        animationSpec = tween(160),
-        label = "listCardScale",
-    )
-    val openLabel = stringResource(R.string.lists_open_action, list.name)
-
-    Column(
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier
-            .width(CardWidth)
-            .heightIn(min = CardMinHeight)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(CardShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = LocalIndication.current,
-                onClickLabel = openLabel,
-                onClick = onClick,
-            )
-            .padding(14.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(TileShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = list.icon,
-                fontSize = 22.sp,
-            )
-        }
-        Text(
-            text = list.name,
-            fontSize = 15.sp,
-            fontWeight = FontWeight(650),
-            lineHeight = 19.5.sp,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        ListStatusBadge(list = list)
-    }
-}
-
-@Composable
 private fun AllListsCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -212,15 +147,15 @@ private fun AllListsCard(
     Column(
         verticalArrangement = Arrangement.spacedBy(10.dp),
         modifier = modifier
-            .width(CardWidth)
-            .heightIn(min = CardMinHeight)
+            .width(ListCardWidth)
+            .heightIn(min = ListCardMinHeight)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(CardShape)
+            .clip(ListCardShape)
             .background(Color.Transparent)
-            .border(1.dp, MaterialTheme.colorScheme.outline, CardShape)
+            .border(1.dp, MaterialTheme.colorScheme.outline, ListCardShape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,
@@ -232,7 +167,7 @@ private fun AllListsCard(
         Box(
             modifier = Modifier
                 .size(44.dp)
-                .clip(TileShape)
+                .clip(ListCardTileShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
             contentAlignment = Alignment.Center,
         ) {

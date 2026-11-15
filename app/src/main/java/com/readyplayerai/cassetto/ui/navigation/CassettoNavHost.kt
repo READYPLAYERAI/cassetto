@@ -1,5 +1,10 @@
 package com.readyplayerai.cassetto.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -27,6 +32,7 @@ import com.readyplayerai.cassetto.ui.account.AccountRoute
 import com.readyplayerai.cassetto.ui.detail.BookmarkDetailRoute
 import com.readyplayerai.cassetto.ui.home.HomeRoute
 import com.readyplayerai.cassetto.ui.lists.AllListsRoute
+import com.readyplayerai.cassetto.ui.lists.ListDetailRoute
 import com.readyplayerai.cassetto.ui.login.LoginRoute
 import com.readyplayerai.cassetto.ui.session.SessionViewModel
 
@@ -96,13 +102,54 @@ fun CassettoNavHost() {
                 onOpenBookmark = { bookmark ->
                     navController.navigate(Routes.detail(bookmark.id)) { launchSingleTop = true }
                 },
+                onOpenList = { list ->
+                    navController.navigate(Routes.listDetail(list.id)) {
+                        launchSingleTop = true
+                    }
+                },
                 onOpenLists = {
                     navController.navigate(Routes.ALL_LISTS) { launchSingleTop = true }
                 },
             )
         }
         composable(Routes.ALL_LISTS) {
-            AllListsRoute(onBack = { navController.popBackStack() })
+            AllListsRoute(
+                onBack = { navController.popBackStack() },
+                onOpenList = { list ->
+                    navController.navigate(Routes.listDetail(list.id)) {
+                        launchSingleTop = true
+                    }
+                },
+            )
+        }
+        composable(
+            route = Routes.LIST_DETAIL,
+            arguments = listOf(
+                navArgument(Routes.LIST_DETAIL_ARG) { type = NavType.StringType },
+            ),
+            enterTransition = {
+                fadeIn(tween(220)) + slideInHorizontally(tween(320)) { it / 5 }
+            },
+            exitTransition = {
+                fadeOut(tween(160)) + slideOutHorizontally(tween(320)) { -it / 5 }
+            },
+            popEnterTransition = {
+                fadeIn(tween(220)) + slideInHorizontally(tween(320)) { -it / 5 }
+            },
+            popExitTransition = {
+                fadeOut(tween(160)) + slideOutHorizontally(tween(320)) { it / 5 }
+            },
+        ) {
+            ListDetailRoute(
+                onOpenBookmark = { bookmark ->
+                    navController.navigate(Routes.detail(bookmark.id)) {
+                        launchSingleTop = true
+                    }
+                },
+                onOpenList = { list ->
+                    navController.navigate(Routes.listDetail(list.id))
+                },
+            )
         }
         composable(
             route = Routes.DETAIL,

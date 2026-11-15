@@ -141,6 +141,7 @@ fun HomeRoute(
     onOpenSettings: () -> Unit = {},
     onSignOut: () -> Unit = {},
     onOpenBookmark: (Bookmark) -> Unit = {},
+    onOpenList: (BookmarkList) -> Unit = {},
     onOpenLists: () -> Unit = {},
     homeViewModel: HomeViewModel = hiltViewModel(),
     sessionViewModel: SessionViewModel = hiltViewModel(),
@@ -184,6 +185,7 @@ fun HomeRoute(
         onOpenSettings = onOpenSettings,
         onSignOut = onSignOut,
         onOpenBookmark = onOpenBookmark,
+        onOpenList = onOpenList,
         onOpenLists = onOpenLists,
     )
 }
@@ -212,6 +214,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onSignOut: () -> Unit,
     onOpenBookmark: (Bookmark) -> Unit,
+    onOpenList: (BookmarkList) -> Unit,
     onOpenLists: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -220,7 +223,6 @@ fun HomeScreen(
     var profileSheetOpen by rememberSaveable { mutableStateOf(false) }
     val fabMessage = stringResource(R.string.home_fab_coming_soon)
     val settingsMessage = stringResource(R.string.profile_settings_coming_soon)
-    val listComingSoonMessage = stringResource(R.string.lists_detail_coming_soon)
     val showMessage: suspend (String) -> Unit = { message ->
         snackbarHostState.showSnackbar(message)
     }
@@ -248,14 +250,20 @@ fun HomeScreen(
                     .padding(top = 8.dp),
             ) {
                 BookmarkSearchBar(
-                    state = state,
-                    user = user,
+                    query = state.query,
+                    isSearchFocused = state.isSearchFocused,
+                    placeholder = stringResource(R.string.home_search_placeholder),
                     onEnterSearch = onEnterSearch,
                     onExitSearch = onExitSearch,
                     onQueryChange = onQueryChange,
                     onSearchSubmitted = onSearchSubmitted,
                     onClearQuery = onClearQuery,
-                    onOpenAccount = { profileSheetOpen = true },
+                    trailing = {
+                        ProfileAvatar(
+                            user = user,
+                            onClick = { profileSheetOpen = true },
+                        )
+                    },
                 )
                 FilterChipRow(
                     selected = state.filter,
@@ -285,9 +293,7 @@ fun HomeScreen(
                     onClearQuery = onClearQuery,
                     onOpenBookmark = onOpenBookmark,
                     onOpenLists = onOpenLists,
-                    onOpenList = { list ->
-                        scope.launch { snackbarHostState.showSnackbar(listComingSoonMessage) }
-                    },
+                    onOpenList = onOpenList,
                 )
             }
         }
@@ -403,8 +409,20 @@ private fun HomePaneSwitcher(
                     animationSpec = tween(200),
                 ),
         ) {
-            SearchPane(
-                state = state,
+            BookmarkSearchPane(
+                query = state.query,
+                recentSearches = state.recentSearches,
+                topTags = state.topTags,
+                results = state.visibleSearchResults,
+                hasAnyResults = state.searchResults.isNotEmpty(),
+                isSearching = state.isSearching,
+                isLoadingMore = state.isSearchLoadingMore,
+                hasMoreResults = state.searchNextCursor != null,
+                hasSearchRun = state.hasSearchRun,
+                error = state.searchError,
+                sortOrder = state.sortOrder,
+                hintTitle = stringResource(R.string.search_hint_title),
+                hintBody = stringResource(R.string.search_hint_body),
                 listState = searchListState,
                 onRecentClick = onRecentClick,
                 onTagClick = onTagClick,
@@ -421,20 +439,21 @@ private fun HomePaneSwitcher(
 }
 
 @Composable
-private fun BookmarkSearchBar(
-    state: HomeUiState,
-    user: UserMeDto?,
+internal fun BookmarkSearchBar(
+    query: String,
+    isSearchFocused: Boolean,
+    placeholder: String,
     onEnterSearch: () -> Unit,
     onExitSearch: () -> Unit,
     onQueryChange: (String) -> Unit,
     onSearchSubmitted: () -> Unit,
     onClearQuery: () -> Unit,
-    onOpenAccount: () -> Unit,
+    trailing: @Composable () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
-    val focused = state.isSearchFocused
+    val focused = isSearchFocused
     val primary = MaterialTheme.colorScheme.primary
 
     LaunchedEffect(focused) {
@@ -499,7 +518,7 @@ private fun BookmarkSearchBar(
             }
 
             BasicTextField(
-                value = state.query,
+                value = query,
                 onValueChange = onQueryChange,
                 singleLine = true,
                 textStyle = TextStyle(
@@ -524,9 +543,9 @@ private fun BookmarkSearchBar(
                         contentAlignment = Alignment.CenterStart,
                         modifier = Modifier.fillMaxSize(),
                     ) {
-                        if (state.query.isEmpty()) {
+                        if (query.isEmpty()) {
                             Text(
-                                text = stringResource(R.string.home_search_placeholder),
+                                text = placeholder,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontSize = 16.sp,
                                 maxLines = 1,
@@ -538,7 +557,7 @@ private fun BookmarkSearchBar(
             )
 
             AnimatedVisibility(
-                visible = focused && state.query.isNotEmpty(),
+                visible = focused && query.isNotEmpty(),
                 enter = fadeIn(tween(150)) + scaleIn(tween(200)),
                 exit = fadeOut(tween(120)) + scaleOut(tween(150)),
             ) {
@@ -561,13 +580,13 @@ private fun BookmarkSearchBar(
 
             Spacer(Modifier.width(4.dp))
 
-            ProfileAvatar(user = user, onClick = onOpenAccount)
+            trailing()
         }
     }
 }
 
 @Composable
-private fun FilterChipRow(
+internal fun FilterChipRow(
     selected: BookmarkFilter,
     onFilterChange: (BookmarkFilter) -> Unit,
     modifier: Modifier = Modifier,
@@ -701,7 +720,7 @@ private fun ProfileSheet(
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 16.dp)
+                    .padding(top = 8.dp, bottom = 16.dp)
                     .size(width = 34.dp, height = 4.dp)
                     .clip(RoundedCornerShape(2.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest),
@@ -992,14 +1011,22 @@ private fun homeErrorBodyRes(error: HomeError): Int = when (error) {
     HomeError.UNKNOWN -> R.string.home_error_unknown
 }
 
-@OptIn(
-    ExperimentalLayoutApi::class,
-    ExperimentalMaterial3Api::class,
-    ExperimentalMaterial3ExpressiveApi::class,
-)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun SearchPane(
-    state: HomeUiState,
+internal fun BookmarkSearchPane(
+    query: String,
+    recentSearches: List<String>,
+    topTags: List<String>,
+    results: List<Bookmark>,
+    hasAnyResults: Boolean,
+    isSearching: Boolean,
+    isLoadingMore: Boolean,
+    hasMoreResults: Boolean,
+    hasSearchRun: Boolean,
+    error: HomeError?,
+    sortOrder: SearchSort,
+    hintTitle: String,
+    hintBody: String,
     listState: LazyListState,
     onRecentClick: (String) -> Unit,
     onTagClick: (String) -> Unit,
@@ -1011,14 +1038,13 @@ private fun SearchPane(
     onOpenBookmark: (Bookmark) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val error = state.searchError
     Box(
         modifier = modifier
             .fillMaxSize()
             .imePadding(),
     ) {
         when {
-            state.query.isBlank() -> {
+            query.isBlank() -> {
                 LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize(),
@@ -1033,7 +1059,7 @@ private fun SearchPane(
                         SearchPanelHeader(
                             titleRes = R.string.search_recent_title,
                             action = {
-                                if (state.recentSearches.isNotEmpty()) {
+                                if (recentSearches.isNotEmpty()) {
                                     TextButton(onClick = onClearRecents) {
                                         Text(text = stringResource(R.string.search_clear))
                                     }
@@ -1041,7 +1067,7 @@ private fun SearchPane(
                             },
                         )
                     }
-                    if (state.recentSearches.isEmpty()) {
+                    if (recentSearches.isEmpty()) {
                         item(key = "no_recents") {
                             Text(
                                 text = stringResource(R.string.search_no_recent),
@@ -1051,7 +1077,7 @@ private fun SearchPane(
                             )
                         }
                     } else {
-                        items(items = state.recentSearches, key = { it }) { term ->
+                        items(items = recentSearches, key = { it }) { term ->
                             RecentSearchRow(
                                 term = term,
                                 onClick = { onRecentClick(term) },
@@ -1062,7 +1088,7 @@ private fun SearchPane(
                         SearchPanelHeader(titleRes = R.string.search_your_tags)
                     }
                     item(key = "tags") {
-                        if (state.topTags.isEmpty()) {
+                        if (topTags.isEmpty()) {
                             Text(
                                 text = stringResource(R.string.search_no_tags),
                                 fontSize = 13.sp,
@@ -1077,7 +1103,7 @@ private fun SearchPane(
                                     .fillMaxWidth()
                                     .padding(start = 4.dp, end = 4.dp, bottom = 14.dp),
                             ) {
-                                state.topTags.forEach { tag ->
+                                topTags.forEach { tag ->
                                     val description = stringResource(
                                         R.string.search_tag_action,
                                         tag,
@@ -1115,10 +1141,10 @@ private fun SearchPane(
                             Text(
                                 text = buildAnnotatedString {
                                     withStyle(SpanStyle(fontWeight = FontWeight.Bold)) {
-                                        append(stringResource(R.string.search_hint_title))
+                                        append(hintTitle)
                                     }
                                     append(" ")
-                                    append(stringResource(R.string.search_hint_body))
+                                    append(hintBody)
                                 },
                                 fontSize = 13.sp,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -1128,7 +1154,7 @@ private fun SearchPane(
                 }
             }
 
-            state.isSearching && state.searchResults.isEmpty() -> {
+            isSearching && !hasAnyResults -> {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center,
@@ -1137,7 +1163,7 @@ private fun SearchPane(
                 }
             }
 
-            error != null && state.searchResults.isEmpty() -> {
+            error != null && !hasAnyResults -> {
                 HomeMessageState(
                     icon = Icons.Outlined.CloudOff,
                     title = stringResource(R.string.search_error_title),
@@ -1150,10 +1176,10 @@ private fun SearchPane(
                 }
             }
 
-            state.isSearchEmpty -> {
+            hasSearchRun && !isSearching && error == null && results.isEmpty() -> {
                 HomeMessageState(
                     icon = Icons.Outlined.OutlinedSearch,
-                    title = stringResource(R.string.search_no_results_title, state.query),
+                    title = stringResource(R.string.search_no_results_title, query),
                     body = stringResource(R.string.search_no_results_body),
                     modifier = Modifier.fillMaxSize(),
                 ) {
@@ -1167,15 +1193,15 @@ private fun SearchPane(
             else -> {
                 LaunchedEffect(
                     listState,
-                    state.searchNextCursor,
-                    state.visibleSearchResults.size,
+                    hasMoreResults,
+                    results.size,
                 ) {
                     snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
                         .distinctUntilChanged()
                         .collect { lastVisible ->
                             if (lastVisible == null) return@collect
-                            val threshold = state.visibleSearchResults.size - 3
-                            if (state.searchNextCursor != null && lastVisible >= threshold) {
+                            val threshold = results.size - 3
+                            if (hasMoreResults && lastVisible >= threshold) {
                                 onLoadMore()
                             }
                         }
@@ -1193,20 +1219,20 @@ private fun SearchPane(
                 ) {
                     item(key = "results_bar") {
                         ResultsBar(
-                            count = state.visibleSearchResults.size,
-                            query = state.query,
-                            sortOrder = state.sortOrder,
+                            count = results.size,
+                            query = query,
+                            sortOrder = sortOrder,
                             onSortToggle = onSortToggle,
                         )
                     }
-                    items(items = state.visibleSearchResults, key = { it.id }) { bookmark ->
+                    items(items = results, key = { it.id }) { bookmark ->
                         BookmarkRow(
                             bookmark = bookmark,
-                            query = state.query,
+                            query = query,
                             onClick = { onOpenBookmark(bookmark) },
                         )
                     }
-                    if (state.isSearchLoadingMore) {
+                    if (isLoadingMore) {
                         item(key = "search_load_more") {
                             Box(
                                 modifier = Modifier

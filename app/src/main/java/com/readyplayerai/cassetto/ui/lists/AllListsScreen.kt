@@ -1,16 +1,14 @@
 package com.readyplayerai.cassetto.ui.lists
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -37,10 +35,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,6 +52,7 @@ import com.readyplayerai.cassetto.data.lists.ListType
 @Composable
 fun AllListsRoute(
     onBack: () -> Unit,
+    onOpenList: (BookmarkList) -> Unit,
     viewModel: AllListsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -63,6 +60,7 @@ fun AllListsRoute(
         state = state,
         onBack = onBack,
         onRetry = viewModel::retry,
+        onOpenList = onOpenList,
     )
 }
 
@@ -72,6 +70,7 @@ fun AllListsScreen(
     state: AllListsUiState,
     onBack: () -> Unit,
     onRetry: () -> Unit,
+    onOpenList: (BookmarkList) -> Unit,
 ) {
     val error = state.error
     Scaffold(
@@ -136,7 +135,10 @@ fun AllListsScreen(
                 ) {
                     if (state.tree.isNotEmpty()) {
                         item(key = "your_lists_header") {
-                            SectionLabel(titleRes = R.string.lists_your_lists)
+                            ListsSectionLabel(
+                                text = stringResource(R.string.lists_your_lists),
+                                modifier = Modifier.padding(start = 4.dp, top = 18.dp, bottom = 6.dp),
+                            )
                         }
                         items(
                             items = state.tree,
@@ -146,12 +148,16 @@ fun AllListsScreen(
                                 list = row.list,
                                 depth = row.depth,
                                 hasChildren = row.hasChildren,
+                                onClick = { onOpenList(row.list) },
                             )
                         }
                     }
                     if (state.shared.isNotEmpty()) {
                         item(key = "shared_header") {
-                            SectionLabel(titleRes = R.string.lists_shared_with_you)
+                            ListsSectionLabel(
+                                text = stringResource(R.string.lists_shared_with_you),
+                                modifier = Modifier.padding(start = 4.dp, top = 18.dp, bottom = 6.dp),
+                            )
                         }
                         items(
                             items = state.shared,
@@ -161,6 +167,7 @@ fun AllListsScreen(
                                 list = list,
                                 depth = 0,
                                 hasChildren = state.lists.any { it.parentId == list.id },
+                                onClick = { onOpenList(list) },
                             )
                         }
                     }
@@ -171,22 +178,11 @@ fun AllListsScreen(
 }
 
 @Composable
-private fun SectionLabel(@StringRes titleRes: Int) {
-    Text(
-        text = stringResource(titleRes).uppercase(),
-        fontSize = 12.5.sp,
-        fontWeight = FontWeight.Bold,
-        letterSpacing = 1.sp,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(start = 4.dp, top = 18.dp, bottom = 6.dp),
-    )
-}
-
-@Composable
 private fun ListRow(
     list: BookmarkList,
     depth: Int,
     hasChildren: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -194,6 +190,8 @@ private fun ListRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
             .heightIn(min = 64.dp)
             .padding(
                 start = (depth * 20).dp,
@@ -257,62 +255,4 @@ private fun ListRow(
             }
         }
     }
-}
-
-@Composable
-private fun ListsMessageState(
-    icon: ImageVector,
-    title: String,
-    body: String,
-    modifier: Modifier = Modifier,
-    action: (@Composable () -> Unit)? = null,
-) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(20.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(28.dp),
-            )
-        }
-        Spacer(Modifier.height(16.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = body,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        if (action != null) {
-            Spacer(Modifier.height(16.dp))
-            action()
-        }
-    }
-}
-
-private fun listsErrorBodyRes(error: ListsError): Int = when (error) {
-    ListsError.CONNECTION -> R.string.lists_error_connection
-    ListsError.UNAUTHORIZED -> R.string.lists_error_unauthorized
-    ListsError.SERVER -> R.string.lists_error_server
-    ListsError.UNKNOWN -> R.string.lists_error_unknown
 }
