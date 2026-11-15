@@ -26,6 +26,7 @@ import com.readyplayerai.cassetto.data.auth.Session
 import com.readyplayerai.cassetto.ui.account.AccountRoute
 import com.readyplayerai.cassetto.ui.detail.BookmarkDetailRoute
 import com.readyplayerai.cassetto.ui.home.HomeRoute
+import com.readyplayerai.cassetto.ui.lists.AllListsRoute
 import com.readyplayerai.cassetto.ui.login.LoginRoute
 import com.readyplayerai.cassetto.ui.session.SessionViewModel
 
@@ -95,7 +96,13 @@ fun CassettoNavHost() {
                 onOpenBookmark = { bookmark ->
                     navController.navigate(Routes.detail(bookmark.id)) { launchSingleTop = true }
                 },
+                onOpenLists = {
+                    navController.navigate(Routes.ALL_LISTS) { launchSingleTop = true }
+                },
             )
+        }
+        composable(Routes.ALL_LISTS) {
+            AllListsRoute(onBack = { navController.popBackStack() })
         }
         composable(
             route = Routes.DETAIL,

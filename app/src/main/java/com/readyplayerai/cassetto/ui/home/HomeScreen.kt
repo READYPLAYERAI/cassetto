@@ -127,7 +127,10 @@ import com.readyplayerai.cassetto.R
 import com.readyplayerai.cassetto.data.auth.Session
 import com.readyplayerai.cassetto.data.bookmarks.Bookmark
 import com.readyplayerai.cassetto.data.bookmarks.BookmarkFilter
+import com.readyplayerai.cassetto.data.lists.BookmarkList
+import com.readyplayerai.cassetto.data.lists.rootLists
 import com.readyplayerai.cassetto.data.remote.dto.UserMeDto
+import com.readyplayerai.cassetto.ui.lists.ListsRail
 import com.readyplayerai.cassetto.ui.session.SessionViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -138,6 +141,7 @@ fun HomeRoute(
     onOpenSettings: () -> Unit = {},
     onSignOut: () -> Unit = {},
     onOpenBookmark: (Bookmark) -> Unit = {},
+    onOpenLists: () -> Unit = {},
     homeViewModel: HomeViewModel = hiltViewModel(),
     sessionViewModel: SessionViewModel = hiltViewModel(),
 ) {
@@ -180,6 +184,7 @@ fun HomeRoute(
         onOpenSettings = onOpenSettings,
         onSignOut = onSignOut,
         onOpenBookmark = onOpenBookmark,
+        onOpenLists = onOpenLists,
     )
 }
 
@@ -207,6 +212,7 @@ fun HomeScreen(
     onOpenSettings: () -> Unit,
     onSignOut: () -> Unit,
     onOpenBookmark: (Bookmark) -> Unit,
+    onOpenLists: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -214,6 +220,7 @@ fun HomeScreen(
     var profileSheetOpen by rememberSaveable { mutableStateOf(false) }
     val fabMessage = stringResource(R.string.home_fab_coming_soon)
     val settingsMessage = stringResource(R.string.profile_settings_coming_soon)
+    val listComingSoonMessage = stringResource(R.string.lists_detail_coming_soon)
     val showMessage: suspend (String) -> Unit = { message ->
         snackbarHostState.showSnackbar(message)
     }
@@ -277,6 +284,10 @@ fun HomeScreen(
                     onLoadMoreSearch = onLoadMoreSearch,
                     onClearQuery = onClearQuery,
                     onOpenBookmark = onOpenBookmark,
+                    onOpenLists = onOpenLists,
+                    onOpenList = { list ->
+                        scope.launch { snackbarHostState.showSnackbar(listComingSoonMessage) }
+                    },
                 )
             }
         }
@@ -351,6 +362,8 @@ private fun HomePaneSwitcher(
     onLoadMoreSearch: () -> Unit,
     onClearQuery: () -> Unit,
     onOpenBookmark: (Bookmark) -> Unit,
+    onOpenLists: () -> Unit,
+    onOpenList: (BookmarkList) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val slideOffset = with(LocalDensity.current) { 14.dp.roundToPx() }
@@ -369,6 +382,8 @@ private fun HomePaneSwitcher(
                 onRetry = onRetryHome,
                 onLoadMore = onLoadMoreHome,
                 onOpenBookmark = onOpenBookmark,
+                onOpenLists = onOpenLists,
+                onOpenList = onOpenList,
                 modifier = Modifier
                     .fillMaxSize()
                     .blur(homeBlur),
@@ -812,6 +827,8 @@ private fun HomeList(
     onRetry: () -> Unit,
     onLoadMore: () -> Unit,
     onOpenBookmark: (Bookmark) -> Unit,
+    onOpenLists: () -> Unit,
+    onOpenList: (BookmarkList) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val error = state.error
@@ -838,21 +855,6 @@ private fun HomeList(
             }
         }
 
-        state.isHomeEmpty -> {
-            HomeMessageState(
-                icon = Icons.Outlined.BookmarkBorder,
-                title = stringResource(R.string.home_empty_title),
-                body = stringResource(
-                    if (state.filter == BookmarkFilter.ALL) {
-                        R.string.home_empty_body
-                    } else {
-                        R.string.home_empty_filter_body
-                    },
-                ),
-                modifier = modifier,
-            )
-        }
-
         else -> {
             LaunchedEffect(listState, state.nextCursor, state.visibleBookmarks.size) {
                 snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
@@ -876,21 +878,54 @@ private fun HomeList(
                     bottom = 110.dp,
                 ),
             ) {
-                items(items = state.visibleBookmarks, key = { it.id }) { bookmark ->
-                    BookmarkRow(
-                        bookmark = bookmark,
-                        onClick = { onOpenBookmark(bookmark) },
-                    )
+                if (state.isListsLoading || state.lists.isNotEmpty()) {
+                    item(key = "home_lists_rail") {
+                        ListsRail(
+                            lists = state.lists.rootLists(),
+                            isLoading = state.isListsLoading,
+                            onOpenList = onOpenList,
+                            onOpenAllLists = onOpenLists,
+                        )
+                    }
                 }
-                if (state.isLoadingMore) {
-                    item(key = "home_load_more") {
+                if (state.visibleBookmarks.isEmpty()) {
+                    item(key = "home_empty") {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp),
-                            contentAlignment = Alignment.Center,
+                                .fillParentMaxHeight(0.65f),
                         ) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                            HomeMessageState(
+                                icon = Icons.Outlined.BookmarkBorder,
+                                title = stringResource(R.string.home_empty_title),
+                                body = stringResource(
+                                    if (state.filter == BookmarkFilter.ALL) {
+                                        R.string.home_empty_body
+                                    } else {
+                                        R.string.home_empty_filter_body
+                                    },
+                                ),
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    }
+                } else {
+                    items(items = state.visibleBookmarks, key = { it.id }) { bookmark ->
+                        BookmarkRow(
+                            bookmark = bookmark,
+                            onClick = { onOpenBookmark(bookmark) },
+                        )
+                    }
+                    if (state.isLoadingMore) {
+                        item(key = "home_load_more") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                            }
                         }
                     }
                 }

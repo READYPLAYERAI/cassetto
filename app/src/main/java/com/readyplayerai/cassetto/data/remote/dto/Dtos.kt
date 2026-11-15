@@ -1,5 +1,6 @@
 package com.readyplayerai.cassetto.data.remote.dto
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /** Response of `apiKeys.exchange`. `createdAt` is a superjson ISO-8601 string. */
@@ -113,3 +114,24 @@ internal data class ValidateRequest(val apiKey: String)
 
 @Serializable
 internal data class RevokeRequest(val id: String)
+
+/** Response of `GET /api/v1/lists`. */
+@Serializable
+data class ListsResponseDto(
+    val lists: List<ListDto> = emptyList(),
+)
+
+/** One Karakeep bookmark list. Fields are tolerant of missing values. */
+@Serializable
+data class ListDto(
+    val id: String,
+    val name: String = "",
+    val description: String? = null,
+    val icon: String = "",
+    val parentId: String? = null,
+    val type: String = "manual",
+    val query: String? = null,
+    @SerialName("public") val isPublic: Boolean = false,
+    val hasCollaborators: Boolean = false,
+    val userRole: String = "owner",
+)

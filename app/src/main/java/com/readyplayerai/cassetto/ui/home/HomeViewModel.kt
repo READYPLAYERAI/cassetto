@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.readyplayerai.cassetto.data.bookmarks.Bookmark
 import com.readyplayerai.cassetto.data.bookmarks.BookmarkFilter
 import com.readyplayerai.cassetto.data.bookmarks.BookmarkRepository
+import com.readyplayerai.cassetto.data.lists.ListsRepository
 import com.readyplayerai.cassetto.data.remote.ApiException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val repository: BookmarkRepository,
+    private val listsRepository: ListsRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -30,6 +32,7 @@ class HomeViewModel @Inject constructor(
     private var searchJob: Job? = null
     private var queryJob: Job? = null
     private var searchGeneration = 0
+    private var listsJob: Job? = null
 
     init {
         loadHome(initial = true)
@@ -252,6 +255,25 @@ class HomeViewModel @Inject constructor(
                         error = e.toHomeError(),
                     )
                 }
+            }
+        }
+        loadLists()
+    }
+
+    private fun loadLists() {
+        listsJob?.cancel()
+        _uiState.update { state ->
+            state.copy(isListsLoading = state.lists.isEmpty())
+        }
+        listsJob = viewModelScope.launch {
+            try {
+                val lists = listsRepository.list()
+                _uiState.update { it.copy(lists = lists, isListsLoading = false) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Lists are supplementary on Home; keep the bookmark feed usable.
+                _uiState.update { it.copy(lists = emptyList(), isListsLoading = false) }
             }
         }
     }

@@ -4,6 +4,7 @@ import com.readyplayerai.cassetto.data.bookmarks.Bookmark
 import com.readyplayerai.cassetto.data.bookmarks.BookmarkFilter
 import com.readyplayerai.cassetto.data.bookmarks.sortedNewestFirst
 import com.readyplayerai.cassetto.data.bookmarks.withFilter
+import com.readyplayerai.cassetto.data.lists.BookmarkList
 
 enum class SearchSort { NEWEST, OLDEST }
 
@@ -27,6 +28,8 @@ data class HomeUiState(
     val recentSearches: List<String> = emptyList(),
     val topTags: List<String> = emptyList(),
     val sortOrder: SearchSort = SearchSort.NEWEST,
+    val lists: List<BookmarkList> = emptyList(),
+    val isListsLoading: Boolean = true,
 ) {
 
     val visibleBookmarks: List<Bookmark>

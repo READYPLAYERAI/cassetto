@@ -5,6 +5,7 @@ import android.net.Uri
 object Routes {
     const val LOGIN = "login"
     const val HOME = "home"
+    const val ALL_LISTS = "lists"
     const val ACCOUNT = "account"
 
     const val DETAIL_ARG = "bookmarkId"

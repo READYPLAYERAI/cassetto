@@ -5,6 +5,7 @@ import com.readyplayerai.cassetto.data.remote.dto.BookmarkDto
 import com.readyplayerai.cassetto.data.remote.dto.BookmarksPageDto
 import com.readyplayerai.cassetto.data.remote.dto.ExchangeRequest
 import com.readyplayerai.cassetto.data.remote.dto.HealthDto
+import com.readyplayerai.cassetto.data.remote.dto.ListsResponseDto
 import com.readyplayerai.cassetto.data.remote.dto.ReadableContentDto
 import com.readyplayerai.cassetto.data.remote.dto.RevokeRequest
 import com.readyplayerai.cassetto.data.remote.dto.UpdateBookmarkRequest
@@ -133,6 +134,17 @@ class KarakeepApi @Inject constructor(
         )
         if (cursor != null) parameters["cursor"] = cursor
         return getBookmarksPage("$serverAddress/api/v1/bookmarks/search", apiKey, parameters)
+    }
+
+    /** All lists owned by or shared with the current user. */
+    suspend fun getLists(serverAddress: String, apiKey: String): ListsResponseDto {
+        val (status, body) = getText("$serverAddress/api/v1/lists", apiKey)
+        if (status !in 200..299) throw httpStatusError(status, body)
+        return try {
+            json.decodeFromString(ListsResponseDto.serializer(), body)
+        } catch (e: Exception) {
+            throw ApiException.Malformed(e)
+        }
     }
 
     /** Full bookmark metadata; content is included so note text can be used as a fallback. */
