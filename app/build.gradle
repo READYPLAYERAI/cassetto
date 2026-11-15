@@ -29,18 +29,37 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // No release keystore yet; debug signing keeps `assembleRelease` usable.
-            signingConfig signingConfigs.debug
         }
+    }
+
+    // Release signing: credentials live in ~/keystores/cassetto.properties,
+    // outside the repository. The signing key must never be committed. Clones
+    // without the properties file fall back to debug signing so
+    // `assembleRelease` still works.
+    def keystorePropsFile = rootProject.file(System.getProperty('user.home') + '/keystores/cassetto.properties')
+    if (keystorePropsFile.exists()) {
+        def keystoreProps = new Properties()
+        keystoreProps.load(new FileInputStream(keystorePropsFile))
+        signingConfigs {
+            release {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+        buildTypes.release.signingConfig = signingConfigs.release
+    } else {
+        buildTypes.release.signingConfig = signingConfigs.debug
     }
 
     buildFeatures {
         compose = true
     }
 
-    // AGP 9+ runs lintVital on release builds. Keep it out of the gate for now.
+    // AGP 9+ runs lintVital on release builds; fatal issues should block a release.
     lint {
-        checkReleaseBuilds false
+        checkReleaseBuilds true
     }
 }
 
